@@ -27,7 +27,8 @@ var searchHistory = [];
       document.getElementById('search-history').appendChild(buttonEl);
     }
   }
-  
+
+
   function clearHistory() {
     localStorage.removeItem('city');
     localStorage.removeItem('lastSearch');
@@ -37,7 +38,9 @@ var searchHistory = [];
       searchHistoryEl.removeChild(searchHistoryEl.firstChild);
     }
   }
-  
+
+
+
   function saveSearch(cityName) {
     let allSearches = JSON.parse(localStorage.getItem('city')) || [];
     allSearches.push(cityName);
@@ -49,6 +52,7 @@ var searchHistory = [];
     checkLocalStorage();
   }
   
+
   function renderCurrentWeather(data) {
     const currentWeatherEl = document.getElementById('current-weather');
     
@@ -61,8 +65,10 @@ var searchHistory = [];
     `;
     
     currentWeatherEl.innerHTML = content;
+
   }
   
+
   function renderFiveDayForecast(data) {
     const fiveDayEl = document.getElementById('five-day');
     fiveDayEl.innerHTML = '';
@@ -85,9 +91,12 @@ var searchHistory = [];
       
       card.innerHTML = content;
       fiveDayEl.appendChild(card);
+
     }
+
   }
   
+
   function getWeather(cityName) {
     const key = 'YOUR_API_KEY_HERE';
     const currentWeatherEl = document.getElementById('current-weather');
@@ -109,15 +118,20 @@ var searchHistory = [];
       .catch(error => {
         console.log(error);
         currentWeatherEl.textContent = 'City not found';
+
       });
+
   }
   
+
   function init() {
     checkLocalStorage();
     
     const formEl = document.getElementById('search-form');
     formEl.addEventListener('submit',
-  
+    )
+  }
+
 initSearchHistory();
 searchForm.addEventListener('submit', handleSearchFormSubmit);
-searchHistoryContainer.addEventListener('click', handleSearchHistoryClick);
+searchHistoryContainer.addEventListener('click', handleSearchHistoryClick); 
