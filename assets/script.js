@@ -13,109 +13,111 @@ var searchHistory = [];
   var apiKey = `a9854075d238a8c3e83e544ff046d4c4`
 
 
-function renderSearchHistory() {
-  searchHistoryContainer.innerHTML = '';
-
-  for (var i = searchHistory.length - 1; i >= 0; i--) {
-    var btn = document.createElement('button');
-    btn.setAttribute('type', 'button');
-    btn.setAttribute('aria-controls', 'today forecast');
-    btn.classList.add('history-btn', 'btn-history');
-
+  function checkLocalStorage() {
+    const lastCity = localStorage.getItem('lastSearch');
     
-    btn.setAttribute('data-search', searchHistory[i]);
-    btn.textContent = searchHistory[i];
-    searchHistoryContainer.append(btn);
+    if (lastCity) {
+      const buttonEl = document.createElement('button');
+      buttonEl.textContent = lastCity;
+      buttonEl.classList.add('btn');
+      buttonEl.addEventListener('click', function() {
+        getWeather(lastCity);
+      });
+      
+      document.getElementById('search-history').appendChild(buttonEl);
+    }
   }
-}
-
-function appendToHistory(search) {
   
-  if (searchHistory.indexOf(search) !== -1) {
-    return;
+  function clearHistory() {
+    localStorage.removeItem('city');
+    localStorage.removeItem('lastSearch');
+    
+    const searchHistoryEl = document.getElementById('search-history');
+    while (searchHistoryEl.firstChild) {
+      searchHistoryEl.removeChild(searchHistoryEl.firstChild);
+    }
   }
-  searchHistory.push(search);
-
-  localStorage.setItem('search-history', JSON.stringify(searchHistory));
-  renderSearchHistory();
-}
-
-function initSearchHistory() {
-  var storedHistory = localStorage.getItem('search-history');
-  if (storedHistory) {
-    searchHistory = JSON.parse(storedHistory);
-  }
-  renderSearchHistory();
-}
-
-function renderForecast(dailyForecast) {
   
-  var startDt = dayjs().add(1, 'day').startOf('day').unix();
-  var endDt = dayjs().add(6, 'day').startOf('day').unix();
-
-  var headingCol = document.createElement('div');
-  var heading = document.createElement('h4');
-
-  headingCol.setAttribute('class', 'col-12');
-  heading.textContent = '5-Day Forecast:';
-  headingCol.append(heading);
-}
-
-function renderItems(city, data) {
-  renderCurrentWeather(city, data.list[0], data.city.timezone);
-  renderForecast(data.list);
-}
-
-function fetchWeather(location) {
-  var { lat, lon, name: city } = location;
-
-  var apiUrl = `${weatherApiRootUrl}/data/2.5/forecast?lat=${lat}&lon=${lon}&units=imperial&appid=${weatherApiKey}`;
-
-  fetch(apiUrl)
-    .then(res => res.json())
-    .then(data => renderItems(city, data))
-    .catch(err => console.error(err));
-}
-
-function fetchCoords(search) {
-  var apiUrl = `${weatherApiRootUrl}/geo/1.0/direct?q=${search}&limit=5&appid=${weatherApiKey}`;
-
-  fetch(apiUrl)
-    .then(res => res.json())
-    .then(data => {
-      if (!data[0]) {
-        alert('Location not found');
-      } else {
-        appendToHistory(search);
-        fetchWeather(data[0]);
-      }
-    })
-    .catch(err => console.error(err));
-}
-
-function handleSearchFormSubmit(e) {
-  
-  if (!searchInput.value) {
-    return;
+  function saveSearch(cityName) {
+    let allSearches = JSON.parse(localStorage.getItem('city')) || [];
+    allSearches.push(cityName);
+    
+    localStorage.setItem('lastSearch', cityName);
+    localStorage.setItem('city', JSON.stringify(allSearches));
+    
+    clearHistory();
+    checkLocalStorage();
   }
-
-  e.preventDefault();
-  var search = searchInput.value.trim();
-  fetchCoords(search);
-  searchInput.value = '';
-}
-
-function handleSearchHistoryClick(e) {
   
-  if (!e.target.matches('.btn-history')) {
-    return;
+  function renderCurrentWeather(data) {
+    const currentWeatherEl = document.getElementById('current-weather');
+    
+    const content = `
+      <h3 id='title'>${data.name}</h3>
+      <p>Temp: ${data.main.temp}</p>
+      <p>Wind: ${data.wind.speed}</p>
+      <p>Humidity: ${data.main.humidity}</p>
+      <img src="http://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png"/>
+    `;
+    
+    currentWeatherEl.innerHTML = content;
   }
-
-  var btn = e.target;
-  var search = btn.getAttribute('data-search');
-  fetchCoords(search);
-}
-
+  
+  function renderFiveDayForecast(data) {
+    const fiveDayEl = document.getElementById('five-day');
+    fiveDayEl.innerHTML = '';
+    
+    for (let i = 3; i < data.list.length; i += 8) {
+      const card = document.createElement('div');
+      card.classList.add('col-sm-2');
+      
+      const content = `
+        <div class="card border-dark">
+          <div class="card-body">
+            <h5 class="card-title">${data.list[i].dt_txt}</h5>
+            <p class="temp">Temp: ${data.list[i].main.temp}</p>
+            <p class="wind">Wind: ${data.list[i].wind.speed}</p>
+            <p class="humidity">Humidity: ${data.list[i].main.humidity}</p>
+            <img src="http://openweathermap.org/img/wn/${data.list[i].weather[0].icon}@2x.png"/>
+          </div>
+        </div>
+      `;
+      
+      card.innerHTML = content;
+      fiveDayEl.appendChild(card);
+    }
+  }
+  
+  function getWeather(cityName) {
+    const key = 'YOUR_API_KEY_HERE';
+    const currentWeatherEl = document.getElementById('current-weather');
+    
+    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${key}&units=imperial`)
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+        saveSearch(cityName);
+        renderCurrentWeather(data);
+        
+        return fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${cityName}&appid=${key}&units=imperial`);
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+        renderFiveDayForecast(data);
+      })
+      .catch(error => {
+        console.log(error);
+        currentWeatherEl.textContent = 'City not found';
+      });
+  }
+  
+  function init() {
+    checkLocalStorage();
+    
+    const formEl = document.getElementById('search-form');
+    formEl.addEventListener('submit',
+  
 initSearchHistory();
 searchForm.addEventListener('submit', handleSearchFormSubmit);
 searchHistoryContainer.addEventListener('click', handleSearchHistoryClick);
